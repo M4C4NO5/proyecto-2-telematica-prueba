@@ -1,10 +1,16 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from extensions import db, login_manager
 from models.user import User
+import os
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secretkey'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///bookstore.db'
+
+# Configuración para usar EFS
+EFS_DIRECTORY = '/mnt/efs/uploads'
+if not os.path.exists(EFS_DIRECTORY):
+    os.makedirs(EFS_DIRECTORY)
 
 db.init_app(app)
 login_manager.init_app(app)
@@ -47,6 +53,13 @@ def initialize_delivery_providers():
 @app.route('/')
 def home():
     return render_template('home.html')
+
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    file = request.files['file']
+    file_path = os.path.join(EFS_DIRECTORY, file.filename)
+    file.save(file_path)
+    return f"File saved to {file_path}"
 
 if __name__ == '__main__':
 # OJO este conexto crea las tablas e inicia los proveedores de entrega, 
